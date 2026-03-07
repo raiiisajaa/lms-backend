@@ -1,0 +1,98 @@
+// Ini adalah konfigurasi mesin penerjemah Prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Ini adalah koneksi ke database Anda
+datasource db {
+  provider = "postgresql"
+}
+
+// Tipe data khusus untuk peran pengguna
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id          String       @id @default(uuid())
+  name        String
+  email       String       @unique
+  password    String
+  role        Role         @default(STUDENT)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  courses     Course[]     @relation("TeacherCourses")
+  enrollments Enrollment[]
+  progress    Progress[]
+}
+
+model Course {
+  id          String       @id @default(uuid())
+  title       String
+  slug        String       @unique
+  description String?      @db.Text
+  price       Int          @default(0)
+  isPublished Boolean      @default(false)
+  teacherId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  teacher     User         @relation("TeacherCourses", fields: [teacherId], references: [id])
+  chapters    Chapter[]
+  enrollments Enrollment[]
+}
+
+model Chapter {
+  id          String       @id @default(uuid())
+  title       String
+  position    Int
+  courseId    String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+}
+
+model Lesson {
+  id          String       @id @default(uuid())
+  title       String
+  videoUrl    String?
+  content     String?      @db.Text
+  position    Int
+  isFree      Boolean      @default(false)
+  chapterId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  chapter     Chapter      @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  progress    Progress[]
+}
+
+model Enrollment {
+  id          String       @id @default(uuid())
+  userId      String
+  courseId    String
+  enrolledAt  DateTime     @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId]) 
+}
+
+model Progress {
+  id          String       @id @default(uuid())
+  userId      String
+  lessonId    String
+  isCompleted Boolean      @default(false)
+  completedAt DateTime?
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId]) 
+}
