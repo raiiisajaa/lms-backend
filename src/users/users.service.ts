@@ -34,6 +34,7 @@ export class UsersService {
         name,
         email,
         password: hashedPassword,
+        role: createUserDto.role,
       },
     });
 

@@ -1,14 +1,27 @@
-import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  IsOptional,
+  IsEnum,
+} from 'class-validator';
+import { Role } from '@prisma/client'; // Import mesin Role dari Prisma
 
 export class CreateUserDto {
-  @IsNotEmpty({ message: 'Nama tidak boleh kosong' })
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
-  @IsNotEmpty({ message: 'Email tidak boleh kosong' })
-  @IsEmail({}, { message: 'Format email tidak valid' })
+  @IsEmail()
   email: string;
 
-  @IsNotEmpty({ message: 'Password tidak boleh kosong' })
-  @MinLength(6, { message: 'Password minimal harus 6 karakter' })
+  @IsString()
+  @MinLength(6)
   password: string;
+
+  // Tambahkan baris di bawah ini untuk mengizinkan input role (tapi opsional)
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
 }
