@@ -5,12 +5,16 @@ import {
   UseGuards,
   Request,
   Get,
+  Patch,
+  Param,
+  Delete,
 } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Controller('courses')
 export class CoursesController {
@@ -30,5 +34,25 @@ export class CoursesController {
   @Get()
   findAll() {
     return this.coursesService.findAll();
+  }
+  // Pintu 3: Mengubah Kelas (Hanya untuk pemiliknya)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('TEACHER')
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateCourseDto: UpdateCourseDto,
+    @Request() req,
+  ) {
+    const authorId = req.user.userId;
+    return this.coursesService.update(id, updateCourseDto, authorId);
+  }
+  // Pintu 4: Menghapus Kelas (Hanya untuk pemiliknya)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('TEACHER')
+  @Delete(':id')
+  remove(@Param('id') id: string, @Request() req) {
+    const authorId = req.user.userId;
+    return this.coursesService.remove(id, authorId);
   }
 }
