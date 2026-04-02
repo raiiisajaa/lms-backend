@@ -48,6 +48,7 @@ model Course {
   description String?  @db.Text
   price       Int      @default(0)
   isPublished Boolean  @default(false)
+  imageUrl    String?  // <-- FITUR BARU: Menyimpan URL gambar dari hasil upload
   teacherId   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
