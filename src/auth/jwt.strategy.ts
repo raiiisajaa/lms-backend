@@ -6,17 +6,18 @@ import { Injectable } from '@nestjs/common';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
-      // 1. Satpam akan mencari tiket di header "Authorization: Bearer <token>"
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      // 2. Tolak tiket yang sudah kedaluwarsa
       ignoreExpiration: false,
-      // 3. Cocokkan stempel tiket dengan brankas rahasia kita di .env
       secretOrKey: process.env.JWT_SECRET as string,
     });
   }
 
-  // 4. Jika tiket asli, ekstrak data (payload) dari dalam tiket tersebut
+  // Setelah token diverifikasi, data ini akan tersedia di req.user
   async validate(payload: any) {
-    return { userId: payload.sub, email: payload.email, role: payload.role };
+    return {
+      userId: payload.sub, // ID user → req.user.userId
+      email: payload.email, // Email  → req.user.email
+      role: payload.role, // Role   → req.user.role
+    };
   }
 }

@@ -1,22 +1,25 @@
 import {
   IsNotEmpty,
-  IsString,
   IsNumber,
   IsOptional,
-  Min,
+  IsString,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateCourseDto {
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   title: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   description?: string;
 
-  @IsNotEmpty()
   @IsNumber()
-  @Min(0)
-  price: number;
+  @IsOptional()
+  price?: number;
+
+  @IsBoolean() //
+  @IsOptional()
+  isPublished?: boolean;
 }

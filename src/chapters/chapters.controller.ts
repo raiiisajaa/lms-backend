@@ -19,31 +19,31 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class ChaptersController {
   constructor(private readonly chaptersService: ChaptersService) {}
 
+  // POST /chapters — Buat bab baru (khusus TEACHER)
+  @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
-  @Post()
   create(@Body() createChapterDto: CreateChapterDto, @Request() req: any) {
-    const authorId = req.user.userId; // <-- KEMBALIKAN KE userId
-    return this.chaptersService.create(createChapterDto, authorId);
+    return this.chaptersService.create(createChapterDto, req.user.userId);
   }
 
+  // PATCH /chapters/:id — Edit bab (khusus pemilik kelas)
+  @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
-  @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateChapterDto: UpdateChapterDto,
     @Request() req: any,
   ) {
-    const authorId = req.user.userId; // <-- KEMBALIKAN KE userId
-    return this.chaptersService.update(id, updateChapterDto, authorId);
+    return this.chaptersService.update(id, updateChapterDto, req.user.userId);
   }
 
+  // DELETE /chapters/:id — Hapus bab (khusus pemilik kelas)
+  @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
-  @Delete(':id')
   remove(@Param('id') id: string, @Request() req: any) {
-    const authorId = req.user.userId; // <-- KEMBALIKAN KE userId
-    return this.chaptersService.remove(id, authorId);
+    return this.chaptersService.remove(id, req.user.userId);
   }
 }

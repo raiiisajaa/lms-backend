@@ -17,8 +17,8 @@ export class CoursesService {
   async create(createCourseDto: CreateCourseDto, authorId: string) {
     const baseSlug = createCourseDto.title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-') // Ubah spasi & simbol jadi strip (-)
-      .replace(/(^-|-$)+/g, ''); // Hapus strip di awal/akhir
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
 
     // Tambahkan angka acak agar unik (mencegah bentrok judul)
     const uniqueSlug = `${baseSlug}-${Math.floor(Math.random() * 1000)}`;
@@ -29,6 +29,7 @@ export class CoursesService {
         slug: uniqueSlug,
         description: createCourseDto.description,
         price: createCourseDto.price,
+        isPublished: createCourseDto.isPublished,
         teacherId: authorId,
       },
     });

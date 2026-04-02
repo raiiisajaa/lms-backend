@@ -2,12 +2,10 @@
 // 1. KONFIGURASI MESIN
 // ==========================================
 
-// Mesin penerjemah kode Prisma ke JavaScript/TypeScript
 generator client {
   provider = "prisma-client-js"
 }
 
-// Koneksi utama ke database PostgreSQL Anda
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -17,7 +15,6 @@ datasource db {
 // 2. ENUMERASI (TIPE DATA KHUSUS)
 // ==========================================
 
-// Menentukan hak akses/peran dari pengguna aplikasi
 enum Role {
   STUDENT // Siswa biasa
   TEACHER // Guru (Bisa membuat kelas)
@@ -38,10 +35,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relasi ke tabel lain
-  courses     Course[]     @relation("TeacherCourses") // Kelas yang dibuat (jika dia TEACHER)
-  enrollments Enrollment[] // Kelas yang diikuti (jika dia STUDENT)
-  progress    Progress[]   // Catatan progres video yang ditonton
+  courses     Course[]     @relation("TeacherCourses") 
+  enrollments Enrollment[] 
+  progress    Progress[]   
 }
 
 // --- TABEL KELAS (COURSE) ---
@@ -56,63 +52,56 @@ model Course {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relasi ke tabel lain
   teacher     User         @relation("TeacherCourses", fields: [teacherId], references: [id])
-  chapters    Chapter[]    // Bab-bab di dalam kelas ini
-  enrollments Enrollment[] // Siswa-siswa yang mendaftar di kelas ini
+  chapters    Chapter[]    
+  enrollments Enrollment[] 
 }
 
 // --- TABEL BAB (CHAPTER) ---
-// Satu kelas bisa memiliki banyak bab
 model Chapter {
   id        String   @id @default(uuid())
   title     String
-  position  Int      // Urutan bab (Bab 1, Bab 2, dst)
+  position  Int      
   courseId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relasi ke tabel lain
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons   Lesson[] // Materi/Video di dalam bab ini
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[] 
 }
 
 // --- TABEL MATERI/VIDEO (LESSON) ---
-// Satu bab bisa memiliki banyak materi video
 model Lesson {
   id        String   @id @default(uuid())
   title     String
   videoUrl  String?
   content   String?  @db.Text
-  position  Int      // Urutan video di dalam bab
-  isFree    Boolean  @default(false) // Apakah video ini gratis untuk preview?
+  position  Int      
+  isFree    Boolean  @default(false) 
   chapterId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relasi ke tabel lain
-  chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  progress  Progress[] // Data siswa yang sudah menonton video ini
+  chapter  Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  progress Progress[] 
 }
 
 // --- TABEL PENDAFTARAN (ENROLLMENT) ---
-// Mencatat siswa mana saja yang sudah membeli/mendaftar di kelas mana
 model Enrollment {
-  id         String   @id @default(uuid())
-  userId     String
-  courseId   String
-  enrolledAt DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  courseId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relasi ke tabel lain
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  // Aturan: Satu user hanya boleh mendaftar 1 kali di kelas yang sama
+  // LOGIKA CERDAS: Mencegah 1 siswa mendaftar di kelas yang sama 2 kali
   @@unique([userId, courseId]) 
 }
 
 // --- TABEL PROGRES BELAJAR ---
-// Mencatat video mana saja yang sudah selesai ditonton oleh siswa
 model Progress {
   id          String    @id @default(uuid())
   userId      String
@@ -120,10 +109,8 @@ model Progress {
   isCompleted Boolean   @default(false)
   completedAt DateTime?
 
-  // Relasi ke tabel lain
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
-  // Aturan: Satu user hanya punya 1 progres di tiap video
   @@unique([userId, lessonId]) 
 }

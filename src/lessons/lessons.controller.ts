@@ -19,31 +19,31 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class LessonsController {
   constructor(private readonly lessonsService: LessonsService) {}
 
+  // POST /lessons — Tambah materi video (khusus TEACHER)
+  @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
-  @Post()
   create(@Body() createLessonDto: CreateLessonDto, @Request() req: any) {
-    const authorId = req.user.userId; // <-- SUDAH DIPERBAIKI KE userId
-    return this.lessonsService.create(createLessonDto, authorId);
+    return this.lessonsService.create(createLessonDto, req.user.userId);
   }
 
+  // PATCH /lessons/:id — Edit materi (khusus pemilik kelas)
+  @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
-  @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateLessonDto: UpdateLessonDto,
     @Request() req: any,
   ) {
-    const authorId = req.user.userId; // <-- SUDAH DIPERBAIKI KE userId
-    return this.lessonsService.update(id, updateLessonDto, authorId);
+    return this.lessonsService.update(id, updateLessonDto, req.user.userId);
   }
 
+  // DELETE /lessons/:id — Hapus materi (khusus pemilik kelas)
+  @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
-  @Delete(':id')
   remove(@Param('id') id: string, @Request() req: any) {
-    const authorId = req.user.userId; // <-- SUDAH DIPERBAIKI KE userId
-    return this.lessonsService.remove(id, authorId);
+    return this.lessonsService.remove(id, req.user.userId);
   }
 }
