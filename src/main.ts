@@ -2,9 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express'; // <-- Tambahan untuk akses mesin Express
+import { join } from 'path'; // <-- Tambahan untuk mengatur rute folder fisik
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Mendaftarkan app sebagai NestExpressApplication secara eksplisit
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // ==========================================
   // 1. PENGATURAN KEAMANAN (CORS)
@@ -15,11 +18,25 @@ async function bootstrap() {
   // ==========================================
   // 2. VALIDASI OTOMATIS & KEAMANAN INPUT
   // whitelist: true → membuang payload liar yang tidak ada di DTO
+  // transform: true → mengubah string di URL query menjadi tipe data asli (number/boolean)
   // ==========================================
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
 
   // ==========================================
-  // 3. SWAGGER — Dokumentasi API
+  // 3. AKSES FILE PUBLIK (STATIC ASSETS)
+  // Membuka gerbang folder 'uploads' agar file di dalamnya bisa diakses via URL browser
+  // ==========================================
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+  });
+
+  // ==========================================
+  // 4. SWAGGER — Dokumentasi API
   // ==========================================
   const config = new DocumentBuilder()
     .setTitle('LMS Backend API')
@@ -32,7 +49,7 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, document);
 
   // ==========================================
-  // 4. JALANKAN SERVER
+  // 5. JALANKAN SERVER
   // ==========================================
   const port = process.env.PORT || 3000;
   await app.listen(port);

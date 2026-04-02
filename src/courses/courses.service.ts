@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { GetCoursesQueryDto } from './dto/get-courses-query.dto';
 
 @Injectable()
 export class CoursesService {
@@ -36,14 +37,43 @@ export class CoursesService {
   }
 
   // ==========================================
-  // 2. READ ALL: Etalase Semua Kelas
+  // 2. READ ALL: Etalase dengan Paginasi & Search
   // ==========================================
-  async findAll() {
-    return this.prisma.course.findMany({
-      orderBy: {
-        createdAt: 'desc', // Urutkan dari kelas yang paling baru dibuat
+  async findAll(query: GetCoursesQueryDto) {
+    const { search, page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit; // Rumus lompatan data (Offset)
+
+    // BANGUN FILTER PENCARIAN (Berdasarkan Judul)
+    const whereCondition = search
+      ? {
+          title: {
+            contains: search,
+            mode: 'insensitive' as const, // Case-insensitive (huruf besar/kecil tidak ngaruh)
+          },
+        }
+      : {};
+
+    // EKSEKUSI PARALEL: Hitung total semua data vs Ambil data terpotong
+    const [total, data] = await this.prisma.$transaction([
+      this.prisma.course.count({ where: whereCondition }), // Hitung jumlah baris
+      this.prisma.course.findMany({
+        where: whereCondition,
+        skip: skip,
+        take: limit, // Batasi jumlah yang diambil
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    // KEMBALIKAN DENGAN FORMAT META (Standard Industri)
+    return {
+      meta: {
+        totalData: total,
+        currentPage: page,
+        dataPerPage: limit,
+        totalPages: Math.ceil(total / limit),
       },
-    });
+      data,
+    };
   }
 
   // ==========================================

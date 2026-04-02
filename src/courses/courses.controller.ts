@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Request,
+  Query, // <-- PERBAIKAN 1: Wajib di-import untuk menangkap parameter URL (?search=...)
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +19,7 @@ import {
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { GetCoursesQueryDto } from './dto/get-courses-query.dto'; // <-- PERBAIKAN 2: Import formulir paginasinya
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -28,7 +30,9 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
-  // POST /courses — Buat kelas baru (khusus TEACHER)
+  // ==========================================
+  // 1. POST: Buat kelas baru (khusus TEACHER)
+  // ==========================================
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
@@ -39,16 +43,26 @@ export class CoursesController {
     return this.coursesService.create(createCourseDto, req.user.userId);
   }
 
-  // GET /courses — Lihat semua kelas
+  // ==========================================
+  // 2. GET: Lihat semua kelas (Paginasi & Pencarian)
+  // ==========================================
   @Get()
-  @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: 'Lihat semua kelas yang tersedia' })
-  @ApiResponse({ status: 200, description: 'Daftar kelas berhasil diambil' })
-  findAll() {
-    return this.coursesService.findAll();
+  @UseGuards(AuthGuard('jwt')) // Bisa diakses Teacher maupun Student
+  @ApiOperation({
+    summary: 'Lihat semua kelas dengan fitur Paginasi & Pencarian',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Daftar kelas berhasil diambil beserta format Meta Data',
+  })
+  findAll(@Query() query: GetCoursesQueryDto) {
+    // <-- PERBAIKAN 3: Menangkap parameter query dan memasukkannya ke Service
+    return this.coursesService.findAll(query);
   }
 
-  // PATCH /courses/:id — Edit kelas (khusus pemilik)
+  // ==========================================
+  // 3. PATCH: Edit kelas (khusus pemilik)
+  // ==========================================
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
@@ -64,7 +78,9 @@ export class CoursesController {
     return this.coursesService.update(id, updateCourseDto, req.user.userId);
   }
 
-  // DELETE /courses/:id — Hapus kelas (khusus pemilik)
+  // ==========================================
+  // 4. DELETE: Hapus kelas (khusus pemilik)
+  // ==========================================
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('TEACHER')
