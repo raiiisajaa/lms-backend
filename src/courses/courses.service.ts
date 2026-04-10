@@ -3,7 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service'; // Sesuaikan path ini jika error
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { GetCoursesQueryDto } from './dto/get-courses-query.dto';
@@ -12,16 +12,13 @@ import { GetCoursesQueryDto } from './dto/get-courses-query.dto';
 export class CoursesService {
   constructor(private prisma: PrismaService) {}
 
-  // ==========================================
-  // 1. CREATE: Membuat Kelas Baru
-  // ==========================================
+  // 1. CREATE KELAS
   async create(createCourseDto: CreateCourseDto, authorId: string) {
     const baseSlug = createCourseDto.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
 
-    // Tambahkan angka acak agar unik (mencegah bentrok judul)
     const uniqueSlug = `${baseSlug}-${Math.floor(Math.random() * 1000)}`;
 
     return this.prisma.course.create({
@@ -36,35 +33,25 @@ export class CoursesService {
     });
   }
 
-  // ==========================================
-  // 2. READ ALL: Etalase dengan Paginasi & Search
-  // ==========================================
+  // 2. READ ALL KELAS (Paginasi)
   async findAll(query: GetCoursesQueryDto) {
     const { search, page = 1, limit = 10 } = query;
-    const skip = (page - 1) * limit; // Rumus lompatan data (Offset)
+    const skip = (page - 1) * limit;
 
-    // BANGUN FILTER PENCARIAN (Berdasarkan Judul)
     const whereCondition = search
-      ? {
-          title: {
-            contains: search,
-            mode: 'insensitive' as const, // Case-insensitive (huruf besar/kecil tidak ngaruh)
-          },
-        }
+      ? { title: { contains: search, mode: 'insensitive' as const } }
       : {};
 
-    // EKSEKUSI PARALEL: Hitung total semua data vs Ambil data terpotong
     const [total, data] = await this.prisma.$transaction([
-      this.prisma.course.count({ where: whereCondition }), // Hitung jumlah baris
+      this.prisma.course.count({ where: whereCondition }),
       this.prisma.course.findMany({
         where: whereCondition,
         skip: skip,
-        take: limit, // Batasi jumlah yang diambil
+        take: limit,
         orderBy: { createdAt: 'desc' },
       }),
     ]);
 
-    // KEMBALIKAN DENGAN FORMAT META (Standard Industri)
     return {
       meta: {
         totalData: total,
@@ -76,38 +63,39 @@ export class CoursesService {
     };
   }
 
-  // ==========================================
-  // 3. READ ONE: Detail Satu Kelas Spesifik
-  // ==========================================
+  // 3. READ ONE KELAS
   async findOne(id: string) {
     const course = await this.prisma.course.findUnique({
       where: { id: id },
     });
 
-    if (!course) {
-      throw new NotFoundException('Kelas tidak ditemukan!');
-    }
-
+    if (!course) throw new NotFoundException('Kelas tidak ditemukan!');
     return course;
   }
 
   // ==========================================
-  // 4. UPDATE: Mengubah Kelas (Wajib Pemilik)
+  // [KODE MAHAL BARU] MENGAMBIL DAFTAR BAB
   // ==========================================
-  async update(id: string, updateCourseDto: UpdateCourseDto, authorId: string) {
+  async findChaptersByCourse(courseId: string) {
+    // Pastikan kelasnya ada dulu
     const course = await this.prisma.course.findUnique({
-      where: { id: id },
+      where: { id: courseId },
     });
+    if (!course) throw new NotFoundException('Kelas tidak valid!');
 
-    if (!course) {
-      throw new NotFoundException('Kelas tidak ditemukan!');
-    }
+    // Ambil bab dan urutkan berdasarkan posisinya (Bab 1, Bab 2, dst)
+    return this.prisma.chapter.findMany({
+      where: { courseId: courseId },
+      orderBy: { position: 'asc' },
+    });
+  }
 
-    // CEK KEPEMILIKAN: Tendang jika bukan miliknya!
+  // 4. UPDATE KELAS
+  async update(id: string, updateCourseDto: UpdateCourseDto, authorId: string) {
+    const course = await this.prisma.course.findUnique({ where: { id: id } });
+    if (!course) throw new NotFoundException('Kelas tidak ditemukan!');
     if (course.teacherId !== authorId) {
-      throw new ForbiddenException(
-        'Akses Ditolak! Anda tidak berhak mengubah kelas milik guru lain.',
-      );
+      throw new ForbiddenException('Akses Ditolak! Ini bukan kelas Anda.');
     }
 
     return this.prisma.course.update({
@@ -116,27 +104,14 @@ export class CoursesService {
     });
   }
 
-  // ==========================================
-  // 5. DELETE: Menghapus Kelas (Wajib Pemilik)
-  // ==========================================
+  // 5. DELETE KELAS
   async remove(id: string, authorId: string) {
-    const course = await this.prisma.course.findUnique({
-      where: { id: id },
-    });
-
-    if (!course) {
-      throw new NotFoundException('Kelas tidak ditemukan!');
-    }
-
-    // CEK KEPEMILIKAN: Tendang jika bukan miliknya!
+    const course = await this.prisma.course.findUnique({ where: { id: id } });
+    if (!course) throw new NotFoundException('Kelas tidak ditemukan!');
     if (course.teacherId !== authorId) {
-      throw new ForbiddenException(
-        'Akses Ditolak! Anda tidak berhak menghapus kelas ini.',
-      );
+      throw new ForbiddenException('Akses Ditolak! Ini bukan kelas Anda.');
     }
 
-    return this.prisma.course.delete({
-      where: { id: id },
-    });
+    return this.prisma.course.delete({ where: { id: id } });
   }
 }

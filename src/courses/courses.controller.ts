@@ -8,7 +8,7 @@ import {
   Delete,
   UseGuards,
   Request,
-  Query, // <-- PERBAIKAN 1: Wajib di-import untuk menangkap parameter URL (?search=...)
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,7 +19,7 @@ import {
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { GetCoursesQueryDto } from './dto/get-courses-query.dto'; // <-- PERBAIKAN 2: Import formulir paginasinya
+import { GetCoursesQueryDto } from './dto/get-courses-query.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -47,21 +47,39 @@ export class CoursesController {
   // 2. GET: Lihat semua kelas (Paginasi & Pencarian)
   // ==========================================
   @Get()
-  @UseGuards(AuthGuard('jwt')) // Bisa diakses Teacher maupun Student
-  @ApiOperation({
-    summary: 'Lihat semua kelas dengan fitur Paginasi & Pencarian',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Daftar kelas berhasil diambil beserta format Meta Data',
-  })
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Lihat semua kelas dengan Paginasi & Pencarian' })
+  @ApiResponse({ status: 200, description: 'Daftar kelas berhasil diambil' })
   findAll(@Query() query: GetCoursesQueryDto) {
-    // <-- PERBAIKAN 3: Menangkap parameter query dan memasukkannya ke Service
     return this.coursesService.findAll(query);
   }
 
   // ==========================================
-  // 3. PATCH: Edit kelas (khusus pemilik)
+  // 3. GET: Lihat detail satu kelas
+  // ==========================================
+  @Get(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Lihat detail satu kelas berdasarkan ID' })
+  @ApiResponse({ status: 200, description: 'Detail kelas berhasil diambil' })
+  @ApiResponse({ status: 404, description: 'Kelas tidak ditemukan' })
+  findOne(@Param('id') id: string) {
+    return this.coursesService.findOne(id);
+  }
+
+  // ==========================================
+  // 4. GET: Ambil semua bab dari sebuah kelas
+  // ==========================================
+  @Get(':id/chapters')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Ambil semua bab dari sebuah kelas' })
+  @ApiResponse({ status: 200, description: 'Daftar bab berhasil diambil' })
+  @ApiResponse({ status: 404, description: 'Kelas tidak ditemukan' })
+  findChapters(@Param('id') id: string) {
+    return this.coursesService.findChaptersByCourse(id);
+  }
+
+  // ==========================================
+  // 5. PATCH: Edit kelas (khusus pemilik)
   // ==========================================
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -79,7 +97,7 @@ export class CoursesController {
   }
 
   // ==========================================
-  // 4. DELETE: Hapus kelas (khusus pemilik)
+  // 6. DELETE: Hapus kelas (khusus pemilik)
   // ==========================================
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)

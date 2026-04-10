@@ -73,7 +73,7 @@ export class UploadController {
       message: 'File berhasil diunggah!',
       filename: file.filename,
       // URL statis sementara yang nanti bisa disimpan ke tabel Course/User
-      url: `http://localhost:3000/uploads/${file.filename}`,
+      url: `http://localhost:5000/uploads/${file.filename}`,
     };
   }
 }
