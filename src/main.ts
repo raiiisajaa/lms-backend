@@ -4,13 +4,20 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { json, urlencoded } from 'express'; // <-- KODE MAHAL: Penjaga gerbang paket besar
 
 async function bootstrap() {
   const logger = new Logger('EduTech-Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // ==========================================
-  // 1. CORS
+  // 1. PERLEBAR GERBANG UNTUK VIDEO (100MB)
+  // ==========================================
+  app.use(json({ limit: '100mb' }));
+  app.use(urlencoded({ limit: '100mb', extended: true }));
+
+  // ==========================================
+  // 2. CORS
   // ==========================================
   app.enableCors({
     origin: ['http://localhost:3000'],
@@ -19,7 +26,7 @@ async function bootstrap() {
   });
 
   // ==========================================
-  // 2. VALIDATION PIPE GLOBAL
+  // 3. VALIDATION PIPE GLOBAL
   // ==========================================
   app.useGlobalPipes(
     new ValidationPipe({
@@ -33,17 +40,14 @@ async function bootstrap() {
   );
 
   // ==========================================
-  // 3. STATIC ASSETS (Upload Files)
-  // FIX: Ganti process.cwd() dengan __dirname
-  // agar path selalu relative ke lokasi file ini,
-  // bukan dari mana NestJS dijalankan
+  // 4. STATIC ASSETS (Upload Files)
   // ==========================================
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads',
   });
 
   // ==========================================
-  // 4. SWAGGER
+  // 5. SWAGGER
   // ==========================================
   const config = new DocumentBuilder()
     .setTitle('EduTech LMS Enterprise API')
@@ -56,7 +60,7 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, document);
 
   // ==========================================
-  // 5. LAUNCH
+  // 6. LAUNCH
   // ==========================================
   const port = process.env.PORT || 5000;
   await app.listen(port);

@@ -1,7 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { PartialType } from '@nestjs/swagger';
+import { CreateChapterDto } from './create-chapter.dto';
 
-export class UpdateChapterDto {
-  @IsOptional()
-  @IsString()
-  title?: string;
-}
+export class UpdateChapterDto extends PartialType(CreateChapterDto) {}

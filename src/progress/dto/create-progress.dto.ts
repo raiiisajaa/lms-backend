@@ -3,7 +3,7 @@ import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
 export class CreateProgressDto {
   @IsString()
   @IsNotEmpty()
-  lessonId: string;
+  chapterId: string; // ← ganti dari lessonId
 
   @IsBoolean()
   @IsNotEmpty()

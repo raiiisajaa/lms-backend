@@ -2,7 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException, // <-- Tambahan baru: Untuk menendang penyusup!
+  ForbiddenException,
 } from '@nestjs/common';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -60,7 +60,7 @@ export class EnrollmentsService {
   // 2. GET PROGRESS: Menghitung Persentase Kelulusan
   // ==========================================
   async getCourseProgress(studentId: string, courseId: string) {
-    // VALIDASI 1: Cek Otorisasi - Apakah siswa ini beneran murid di kelas ini?
+    // VALIDASI 1: Cek Otorisasi
     const enrollment = await this.prisma.enrollment.findUnique({
       where: {
         userId_courseId: { userId: studentId, courseId: courseId },
@@ -73,49 +73,47 @@ export class EnrollmentsService {
       );
     }
 
-    // KALKULASI 1: Hitung total semua video di kelas ini
-    // Logika relasi: Kita mencari Lesson (Video) yang menempel pada Chapter yang menempel pada courseId ini.
-    const totalLessons = await this.prisma.lesson.count({
+    // KALKULASI 1: Hitung total chapter yang sudah dipublish di kelas ini
+    // PERUBAHAN: this.prisma.lesson.count → this.prisma.chapter.count
+    // Chapter sekarang langsung punya courseId, tidak ada nested lesson-chapter lagi
+    const totalChapters = await this.prisma.chapter.count({
       where: {
-        chapter: {
-          courseId: courseId,
-        },
+        courseId: courseId,
+        isPublished: true, // Hanya hitung yang sudah dipublish
       },
     });
 
-    // Cegah error "pembagian dengan nol (0)" jika guru belum upload video sama sekali
-    if (totalLessons === 0) {
+    // Cegah error "pembagian dengan nol" jika belum ada chapter
+    if (totalChapters === 0) {
       return {
-        totalLessons: 0,
-        completedLessons: 0,
+        totalChapters: 0,
+        completedChapters: 0,
         percentage: 0,
         isFullyCompleted: false,
       };
     }
 
-    // KALKULASI 2: Hitung video yang sudah ditonton khusus oleh siswa ini
-    const completedLessons = await this.prisma.progress.count({
+    // KALKULASI 2: Hitung chapter yang sudah diselesaikan oleh siswa ini
+    // PERUBAHAN: filter 'lesson' → 'chapter' (sesuai relasi di schema baru)
+    const completedChapters = await this.prisma.progress.count({
       where: {
         userId: studentId,
-        isCompleted: true, // Hanya hitung yang statusnya selesai
-        lesson: {
-          chapter: {
-            courseId: courseId, // Pastikan videonya dari kelas yang sedang dicek
-          },
+        isCompleted: true,
+        chapter: {
+          courseId: courseId, // Pastikan chapter-nya dari kelas yang sedang dicek
         },
       },
     });
 
     // MATEMATIKA FINAL: Jadikan persentase (Dibulatkan)
-    const percentage = Math.round((completedLessons / totalLessons) * 100);
+    const percentage = Math.round((completedChapters / totalChapters) * 100);
 
-    // KEMBALIKAN HASIL: Format JSON ini yang akan ditangkap oleh Frontend
     return {
       courseId,
-      totalLessons,
-      completedLessons,
+      totalChapters,
+      completedChapters,
       percentage,
-      isFullyCompleted: percentage === 100, // Akan bernilai true jika persentase mencapai 100
+      isFullyCompleted: percentage === 100,
     };
   }
 }

@@ -7,6 +7,7 @@ import {
   Delete,
   UseGuards,
   Request,
+  Get,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -53,5 +54,9 @@ export class ChaptersController {
   @ApiOperation({ summary: 'Hapus bab (Khusus Pemilik Kelas)' })
   remove(@Param('id') id: string, @Request() req: any) {
     return this.chaptersService.remove(id, req.user.userId);
+  }
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.chaptersService.findOne(id);
   }
 }
